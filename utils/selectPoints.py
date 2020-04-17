@@ -35,7 +35,7 @@ class PointSelector(object):
         self.template_frame.pack(side=tk.RIGHT, expand=True)
         self.template_canvas = tk.Canvas(self.template_frame)
         self.template_canvas.pack(side="top", fill="both", expand=True)
-        self.template = Image.open('../templates/template.png')
+        self.template = Image.open(os.path.join(os.getcwd(), 'templates', 'template.png'))
         self.template = ImageTk.PhotoImage(self.template)
         self.template_canvas.create_image(0, 0, anchor="nw", image=self.template)
         self.instruction_label = tk.Label(self.template_frame, text="Select five points like in figure using muose")
