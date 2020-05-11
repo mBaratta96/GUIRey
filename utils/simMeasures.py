@@ -5,8 +5,8 @@ import cv2
 import math
 from utils import removeScore
 from utils.cosineSim import cosine, hausdorff, chamfer, histGrad
-from numpy import abs
-scale = 80
+from numpy import abs, around
+scale = 100
 
 or_points = [
     [324,119,378,373],
@@ -33,11 +33,9 @@ class SimMeasures():
         self.root = root
         self.img_paths = image_paths
         self.count_img = 0
-        self.scale_percent = scale/100
-        for i in range(len(or_points)):
-            or_points[i] = [int(p * self.scale_percent) for p in or_points[i]]
         self.root.protocol("WM_DELETE_WINDOW", self.abort)
         self.x = self.y = 0
+        self.img_or_points = [None] * len(or_points)
         self.createTkImage()
         self.image_frame = tk.Frame(self.root, width=self.img_shape[1], height=self.img_shape[0], bd=1)
         self.image_frame.pack(side=tk.LEFT, expand = True, fill = tk.BOTH)
@@ -111,8 +109,8 @@ class SimMeasures():
             self.reset()
             self.template_name = os.path.split(path)[1]
             img_template = cv2.imread(path)
-            width = int(img_template.shape[1] * self.scale_percent)
-            height = int(img_template.shape[0] * self.scale_percent)
+            width = int(img_template.shape[1] * self.scale_percent_w)
+            height = int(img_template.shape[0] * self.scale_percent_h)
             dim = (width, height)
             self.img_template = cv2.resize(img_template, dim, interpolation=cv2.INTER_AREA)
             template = Image.fromarray(cv2.cvtColor(self.img_template, cv2.COLOR_BGR2RGB).astype('uint8'), 'RGB')
@@ -128,14 +126,23 @@ class SimMeasures():
             messagebox.showerror("Error", "You must select a template")
 
 
-
     def createTkImage(self):
         path = self.img_paths[self.count_img]
         self.img = cv2.imread(path)
-        for x in or_points:
-            self.img = cv2.rectangle(self.img, (x[0], x[1]), (x[2], x[3]), color=(0,0,0))
         self.img_shape = self.img.shape
-        img = Image.fromarray(cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB).astype('uint8'), 'RGB')
+        self.scale_percent_w = (self.img_shape[1] / 1360)
+        self.scale_percent_h = (self.img_shape[0] / 768)
+        for i in range(len(or_points)):
+            self.img_or_points[i] = or_points[i].copy()
+            self.img_or_points[i][0] *= self.scale_percent_w
+            self.img_or_points[i][2] *= self.scale_percent_w
+            self.img_or_points[i][1] *= self.scale_percent_h
+            self.img_or_points[i][3] *= self.scale_percent_h
+            self.img_or_points[i] = around(self.img_or_points[i]).astype(int)
+        img = self.img.copy()
+        for x in self.img_or_points:
+            img = cv2.rectangle(img, (x[0], x[1]), (x[2], x[3]), color=(0, 0, 0))
+        img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype('uint8'), 'RGB')
         self.tk_im = ImageTk.PhotoImage(img)
 
     def changeImage(self):
@@ -240,7 +247,7 @@ class SimMeasures():
     def computeDistanceOriginal(self):
         self.distance_value.delete(1.0, tk.END)
         if self.distance_selected.get() and self.templateIN:
-            original_coord = or_points[label_dict[self.template_name]]
+            original_coord = self.img_or_points[label_dict[self.template_name]]
             rect_coord = self.canvas.coords(self.rect)
             centerROI = (int((rect_coord[2]+rect_coord[0])//2), int((rect_coord[3]+rect_coord[1])//2))
             center_or = ((original_coord[2]+original_coord[0])//2, (original_coord[3]+original_coord[1])//2)
