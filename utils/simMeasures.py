@@ -6,26 +6,29 @@ import math
 from utils import removeScore
 from utils.cosineSim import cosine, hausdorff, chamfer, histGrad
 from numpy import abs, around
+
 scale = 100
 
 or_points = [
-    [324,119,378,373],
-    [375, 540,794, 661],
+    [324, 119, 378, 373],
+    [375, 540, 794, 661],
     [742, 287, 829, 373],
     [617, 383, 847, 534],
     [852, 229, 1056, 531]
 ]
-label_dict={
-    'cross.png':0,
-    'crossdown.png':1,
-    'face.png':2,
-    'rail.png':3,
-    'rombo.png':4
+label_dict = {
+    'cross.png': 0,
+    'crossdown.png': 1,
+    'face.png': 2,
+    'rail.png': 3,
+    'rombo.png': 4
 }
 import os
 
+
 def selectFiles():
-    return filedialog.askopenfilename(initialdir = os.getcwd(),title = "Select a template",filetypes = ( ("png files",".png"),("jpeg files","*.jpg")))
+    return filedialog.askopenfilename(initialdir=os.getcwd(), title="Select a template",
+                                      filetypes=(("png files", ".png"), ("jpeg files", "*.jpg")))
 
 
 class SimMeasures():
@@ -38,7 +41,7 @@ class SimMeasures():
         self.img_or_points = [None] * len(or_points)
         self.createTkImage()
         self.image_frame = tk.Frame(self.root, width=self.img_shape[1], height=self.img_shape[0], bd=1)
-        self.image_frame.pack(side=tk.LEFT, expand = True, fill = tk.BOTH)
+        self.image_frame.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
         self.canvas = tk.Canvas(self.image_frame, width=self.img_shape[1], height=self.img_shape[0], cursor="cross")
         self.canvas.pack(side="top", fill="both", expand=True)
         self.img_item = self.canvas.create_image(0, 0, anchor="nw", image=self.tk_im)
@@ -67,29 +70,32 @@ class SimMeasures():
         self.insTemplateButton = tk.Button(self.measures_frame, text='Insert Template',
                                            command=self.insert_template).pack(side=tk.BOTTOM, anchor=tk.SE)
         self.cosine_selected = tk.IntVar()
-        self.cosine_label = tk.Checkbutton(self.measures_frame, text='Cosine Distance', variable=self.cosine_selected, command=self.computeCosine)
+        self.cosine_label = tk.Checkbutton(self.measures_frame, text='Cosine Distance', variable=self.cosine_selected,
+                                           command=self.computeCosine)
         self.cosine_label.pack(side=tk.BOTTOM)
         self.cosine_value = tk.Text(self.measures_frame, height=1, width=20)
         self.cosine_value.pack(side=tk.BOTTOM, fill='x')
         self.haus_selected = tk.IntVar()
-        self.haus_label = tk.Checkbutton(self.measures_frame, text='Hausdorff distance', variable=self.haus_selected, command=self.computeHaus)
+        self.haus_label = tk.Checkbutton(self.measures_frame, text='Hausdorff distance', variable=self.haus_selected,
+                                         command=self.computeHaus)
         self.haus_label.pack(side=tk.BOTTOM)
         self.haus_value = tk.Text(self.measures_frame, height=1, width=20)
         self.haus_value.pack(side=tk.BOTTOM, fill='x')
         self.chamfer_selected = tk.IntVar()
-        self.chamfer_label = tk.Checkbutton(self.measures_frame, text='Chamfer distance', variable=self.chamfer_selected, command=self.computeChamfer)
+        self.chamfer_label = tk.Checkbutton(self.measures_frame, text='Chamfer distance',
+                                            variable=self.chamfer_selected, command=self.computeChamfer)
         self.chamfer_label.pack(side=tk.BOTTOM)
         self.chamfer_value = tk.Text(self.measures_frame, height=1, width=20)
         self.chamfer_value.pack(side=tk.BOTTOM, fill='x')
         self.HOG_selected = tk.IntVar()
         self.HOG_label = tk.Checkbutton(self.measures_frame, text='Histogram of Gradients',
-                                            variable=self.HOG_selected, command=self.computeHOG)
+                                        variable=self.HOG_selected, command=self.computeHOG)
         self.HOG_label.pack(side=tk.BOTTOM)
         self.HOG_value = tk.Text(self.measures_frame, height=1, width=20)
         self.HOG_value.pack(side=tk.BOTTOM, fill='x')
         self.distance_selected = tk.IntVar()
         self.distance_label = tk.Checkbutton(self.measures_frame, text='Distance from original',
-                                            variable=self.distance_selected, command=self.computeDistanceOriginal)
+                                             variable=self.distance_selected, command=self.computeDistanceOriginal)
         self.distance_label.pack(side=tk.BOTTOM)
         self.distance_value = tk.Text(self.measures_frame, height=1, width=20)
         self.distance_value.pack(side=tk.BOTTOM, fill='x')
@@ -101,11 +107,9 @@ class SimMeasures():
         y = (self.root.winfo_screenheight() // 2) - (height // 2)
         self.root.geometry('{}x{}+{}+{}'.format(width, height, x, y))
 
-
-
     def insert_template(self):
         path = selectFiles()
-        if len(path)>0:
+        if len(path) > 0:
             self.reset()
             self.template_name = os.path.split(path)[1]
             img_template = cv2.imread(path)
@@ -116,15 +120,14 @@ class SimMeasures():
             template = Image.fromarray(cv2.cvtColor(self.img_template, cv2.COLOR_BGR2RGB).astype('uint8'), 'RGB')
             self.img_template = cv2.cvtColor(self.img_template, cv2.COLOR_BGR2GRAY)
             self.template = ImageTk.PhotoImage(template)
-            self.measures_canvas.create_image(0,0, anchor="nw",image=self.template)
+            self.measures_canvas.create_image(0, 0, anchor="nw", image=self.template)
             w = int(self.img_template.shape[1])
             h = int(self.img_template.shape[0])
-            self.rect = self.canvas.create_rectangle(50, 50, 50+w, 50+h, outline='red', width=4, tags=("rec",))
+            self.rect = self.canvas.create_rectangle(50, 50, 50 + w, 50 + h, outline='red', width=4, tags=("rec",))
             self.no_score = self.getROI()
             self.templateIN = True
         else:
             messagebox.showerror("Error", "You must select a template")
-
 
     def createTkImage(self):
         path = self.img_paths[self.count_img]
@@ -168,7 +171,6 @@ class SimMeasures():
         else:
             self.resizing = True
 
-
     def stop(self, event):
         self._drag_data["item"] = None
         self._drag_data["x"] = 0
@@ -178,7 +180,6 @@ class SimMeasures():
         else:
             self.resizing = False
 
-
     def move(self, event):
 
         delta_x = event.x - self._drag_data["x"]
@@ -187,16 +188,16 @@ class SimMeasures():
         if self.modality:
             self.canvas.move(self._drag_data["item"], delta_x, delta_y)
         else:
-            if len(self.canvas.coords(self._drag_data["item"]))==4:
+            if len(self.canvas.coords(self._drag_data["item"])) == 4:
                 x0, y0, x1, y1 = self.canvas.coords(self._drag_data["item"])
-                if(abs(self._drag_data["x"]-x0)<20):
-                    self.canvas.coords(self._drag_data["item"], x0+delta_x, y0, x1, y1)
-                elif(abs(self._drag_data["x"]-x1)<20):
-                    self.canvas.coords(self._drag_data["item"], x0, y0, x1+delta_x, y1)
-                elif(abs(self._drag_data["y"]-y0)<20):
-                    self.canvas.coords(self._drag_data["item"], x0, y0+delta_y, x1, y1)
-                elif(abs(self._drag_data["y"]-y1)<20):
-                    self.canvas.coords(self._drag_data["item"], x0, y0, x1, y1+delta_y)
+                if (abs(self._drag_data["x"] - x0) < 20):
+                    self.canvas.coords(self._drag_data["item"], x0 + delta_x, y0, x1, y1)
+                elif (abs(self._drag_data["x"] - x1) < 20):
+                    self.canvas.coords(self._drag_data["item"], x0, y0, x1 + delta_x, y1)
+                elif (abs(self._drag_data["y"] - y0) < 20):
+                    self.canvas.coords(self._drag_data["item"], x0, y0 + delta_y, x1, y1)
+                elif (abs(self._drag_data["y"] - y1) < 20):
+                    self.canvas.coords(self._drag_data["item"], x0, y0, x1, y1 + delta_y)
 
         self._drag_data["x"] = event.x
         self._drag_data["y"] = event.y
@@ -249,14 +250,13 @@ class SimMeasures():
         if self.distance_selected.get() and self.templateIN:
             original_coord = self.img_or_points[label_dict[self.template_name]]
             rect_coord = self.canvas.coords(self.rect)
-            centerROI = (int((rect_coord[2]+rect_coord[0])//2), int((rect_coord[3]+rect_coord[1])//2))
-            center_or = ((original_coord[2]+original_coord[0])//2, (original_coord[3]+original_coord[1])//2)
-            dist = math.hypot(center_or[0]-centerROI[0], center_or[1]-centerROI[1])
+            centerROI = (int((rect_coord[2] + rect_coord[0]) // 2), int((rect_coord[3] + rect_coord[1]) // 2))
+            center_or = ((original_coord[2] + original_coord[0]) // 2, (original_coord[3] + original_coord[1]) // 2)
+            dist = math.hypot(center_or[0] - centerROI[0], center_or[1] - centerROI[1])
             self.distance_value.insert(tk.END, str(dist))
             self.templateDrawn = True
         else:
             self.distance_value.insert(tk.END, '0.0')
-
 
     def computeSimilarityGlobal(self):
         self.computeCosine()
@@ -274,6 +274,3 @@ class SimMeasures():
 
     def skip_image(self):
         self.changeImage()
-
-
-

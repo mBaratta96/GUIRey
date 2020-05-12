@@ -63,7 +63,7 @@ class PointSelector(object):
     def changeImage(self):
         self.reset()
         self.count_img += 1
-        if self.count_img<len(self.img_paths):
+        if self.count_img < len(self.img_paths):
             self.createTkImage()
             self.canvas.itemconfigure(self.img_item, image=self.tk_im)
         else:

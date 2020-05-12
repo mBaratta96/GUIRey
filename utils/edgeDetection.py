@@ -28,11 +28,8 @@ def maxDeviationThresh(hist):
 
 
 def extractDrawing(img):
-    dst = img.copy()
-    max_occ = np.bincount(dst[dst>0]).argmax()
-    dst[dst == 0] = max_occ
-    hist, n, _ = plt.hist(dst.ravel(), 256, [0, 256])
-    plt.close('all')
+    dst = cv2.bilateralFilter(img, 10, sigmaColor=15, sigmaSpace=15)
+    hist, _ = np.histogram(dst[dst > 0].flatten(), range(257))
     thresh_val = maxDeviationThresh(hist)
     threshed = np.ones(dst.shape, np.uint8)*255
     mask = dst < thresh_val
@@ -40,5 +37,6 @@ def extractDrawing(img):
     return threshed
 
 if __name__ == '__main__':
-    img = cv2.imread('./images/img_homography.png')
-    extractDrawing(img)
+    img = cv2.imread('../AGO2018.png', cv2.IMREAD_GRAYSCALE)
+    cv2.imshow('result', extractDrawing(img))
+    cv2.waitKey(0)
