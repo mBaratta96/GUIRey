@@ -5,10 +5,14 @@ import cv2
 import math
 from utils import removeScore
 from utils.cosineSim import cosine, hausdorff, chamfer, histGrad
-from numpy import abs, around
+import numpy as np
+import os
+from utils.edgeDetection import extractDrawing
+from matplotlib import pyplot as plt
+from keras.models import load_model
 
 scale = 100
-
+shape = (100, 100, 1)
 or_points = [
     [324, 119, 378, 373],
     [375, 540, 794, 661],
@@ -23,12 +27,21 @@ label_dict = {
     'rail.png': 3,
     'rombo.png': 4
 }
-import os
 
 
 def selectFiles():
     return filedialog.askopenfilename(initialdir=os.getcwd(), title="Select a template",
                                       filetypes=(("png files", ".png"), ("jpeg files", "*.jpg")))
+
+
+def background_thumbnail(template, modality, thumbnail_size=(200, 200)):
+    foreground = Image.fromarray(template).convert(modality)
+    background = Image.new(modality, thumbnail_size, "white")
+    foreground.thumbnail(thumbnail_size)
+    (w, h) = foreground.size
+    upper_left = (int((thumbnail_size[0] - w) / 2), int((thumbnail_size[1] - h) / 2))
+    background.paste(foreground, upper_left)
+    return np.array(background)
 
 
 class SimMeasures():
@@ -52,11 +65,11 @@ class SimMeasures():
         self.root.bind('<Down>', lambda e: self.down())
         self.start_x = None
         self.start_y = None
+        self.model = None
         self._drag_data = {"x": 0, "y": 0, "item": None}
         self.canvas.tag_bind("rec", "<ButtonPress-1>", self.start)
         self.canvas.tag_bind("rec", "<ButtonRelease-1>", self.stop)
         self.canvas.tag_bind("rec", "<B1-Motion>", self.move)
-
         self.dragging = False
         self.resizing = False
         self.modality = True
@@ -104,6 +117,12 @@ class SimMeasures():
         self.distance_label.pack(side=tk.BOTTOM)
         self.distance_value = tk.Text(self.measures_frame, height=1, width=20)
         self.distance_value.pack(side=tk.BOTTOM, fill='x')
+        '''self.model_selected = tk.IntVar()
+        self.model_label = tk.Checkbutton(self.measures_frame, text='Score from model',
+                                          variable=self.model_selected, command=self.computeModelScore)
+        self.model_label.pack(side=tk.BOTTOM)
+        self.model_value = tk.Text(self.measures_frame, height=1, width=20)
+        self.model_value.pack(side=tk.BOTTOM, fill='x')'''
         self.computeSimilarityGlobal()
         self.root.update_idletasks()
         width = self.root.winfo_width()
@@ -124,6 +143,10 @@ class SimMeasures():
             self.img_template = cv2.resize(img_template, dim, interpolation=cv2.INTER_AREA)
             template = Image.fromarray(cv2.cvtColor(self.img_template, cv2.COLOR_BGR2RGB).astype('uint8'), 'RGB')
             self.img_template = cv2.cvtColor(self.img_template, cv2.COLOR_BGR2GRAY)
+            self.input_template = background_thumbnail(self.img_template, 'L', (shape[0], shape[1]))
+            self.input_template = self.input_template.astype('float32')
+            self.input_template /= 255
+            self.input_template = np.reshape(self.input_template, shape)
             self.template = ImageTk.PhotoImage(template)
             self.measures_canvas.create_image(0, 0, anchor="nw", image=self.template)
             w = int(self.img_template.shape[1])
@@ -146,7 +169,7 @@ class SimMeasures():
             self.img_or_points[i][2] *= self.scale_percent_w
             self.img_or_points[i][1] *= self.scale_percent_h
             self.img_or_points[i][3] *= self.scale_percent_h
-            self.img_or_points[i] = around(self.img_or_points[i]).astype(int)
+            self.img_or_points[i] = np.around(self.img_or_points[i]).astype(int)
         img = self.img.copy()
         for x in self.img_or_points:
             img = cv2.rectangle(img, (x[0], x[1]), (x[2], x[3]), color=(0, 0, 0))
@@ -307,9 +330,27 @@ class SimMeasures():
             center_or = ((original_coord[2] + original_coord[0]) // 2, (original_coord[3] + original_coord[1]) // 2)
             dist = math.hypot(center_or[0] - centerROI[0], center_or[1] - centerROI[1])
             self.distance_value.insert(tk.END, str(dist))
-            self.templateDrawn = True
         else:
             self.distance_value.insert(tk.END, '0.0')
+
+    def computeModelScore(self):
+        self.model_value.delete(1.0, tk.END)
+        if self.model_selected.get() and self.templateIN and self.no_score is not None:
+            if self.model is None:
+                self.model = load_model
+            threshed = np.array(extractDrawing(self.no_score))
+            img_input = background_thumbnail(threshed, 'L', (shape[0], shape[1]))
+            img_input = img_input.astype('float32')
+            img_input /= 255
+            img_input = np.reshape(img_input, shape)
+            fig, ax = plt.subplots(nrows=1, ncols=2)
+            ax.ravel()[0].imshow(img_input[:, :, 0], cmap='gray')
+            ax.ravel()[1].imshow(self.input_template[:, :, 0], cmap='gray')
+            plt.show()
+            plt.close('all')
+            self.model_value.insert(tk.END, str(5))
+        else:
+            self.model_value.insert(tk.END, '0.0')
 
     def computeSimilarityGlobal(self):
         self.computeCosine()
@@ -317,6 +358,7 @@ class SimMeasures():
         self.computeChamfer()
         self.computeHOG()
         self.computeDistanceOriginal()
+        self.computeModelScore()
 
     def reset(self):
         if self.templateIN:

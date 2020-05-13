@@ -1,12 +1,12 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
 import cv2
 import os
 from PIL import Image, ImageTk
 from sklearn.mixture import GaussianMixture
 import numpy as np
 from utils.edgeDetection import maxDeviationThresh
-from matplotlib import pyplot as plt
+
 
 
 def selectFiles():
@@ -25,7 +25,7 @@ class RemoveLine:
         self.canvas = tk.Canvas(self.image_frame, width=self.img_shape[1], height=self.img_shape[0], cursor="cross")
         self.canvas.pack(side="top", fill="both", expand=True)
         self.img_item = self.canvas.create_image(0, 0, anchor="nw", image=self.tk_im)
-        self.confirmButton = tk.Button(self.image_frame, text="OK", command=self.confirm)
+        self.confirmButton = tk.Button(self.image_frame, text="OK", command=self.save)
         self.root.bind('<Return>', lambda event=None: self.confirmButton.invoke())
         self.confirmButton.pack(side=tk.RIGHT, anchor=tk.SE)
         self.template_frame = tk.Frame(self.root)
@@ -60,6 +60,7 @@ class RemoveLine:
 
     def createTkImage(self):
         path = self.img_paths[self.count_img]
+        _, self.img_name = os.path.split(path)
         self.img = cv2.bilateralFilter(cv2.imread(path, cv2.IMREAD_GRAYSCALE), 10, 15, 15)
         self.img_shape = self.img.shape
         img = Image.fromarray(self.img.astype('uint8'), 'L')
@@ -77,10 +78,16 @@ class RemoveLine:
     def apply_filter(self):
         if self.removed is not None:
             if self.median_slide.get() > 0:
-                filtered = cv2.medianBlur(self.removed, int(2 * self.median_slide.get()) + 1)
+                '''k_size = (int(2*self.median_slide.get()+1), int(2*self.median_slide.get()+1))
+                anchor = (int(self.median_slide.get()), int(self.median_slide.get()))
+                element = cv2.getStructuringElement(cv2.MORPH_RECT, k_size, anchor)
+
+                self.filtered = cv2.dilate(self.removed, element)'''
+                self.filtered = cv2.medianBlur(self.removed, int(2 * self.median_slide.get()) + 1)
             else:
-                filtered = self.removed
-            img = Image.fromarray(filtered.astype('uint8'), 'L')
+                self.filtered = self.removed
+
+            img = Image.fromarray(self.filtered.astype('uint8'), 'L')
             self.tk_im = ImageTk.PhotoImage(img)
             self.canvas.itemconfigure(self.img_item, image=self.tk_im)
 
@@ -120,6 +127,16 @@ class RemoveLine:
         self.removed = dst
         self.apply_filter()
 
+    def save(self):
+        index = self.img_name.find('.png')
+        if index == -1:
+            index = self.img_name.find('.jpg')
+        head = self.img_name[:index]
+        tail = self.img_name[index:]
+        file_name_default = head + '_' + 'no_line' + tail
+        directory = filedialog.asksaveasfilename(initialdir=os.getcwd(), initialfile=file_name_default)
+        if len(directory) > 0:
+           cv2.imwrite(directory, self.filtered)
 
 if __name__ == '__main__':
     root = tk.Tk()

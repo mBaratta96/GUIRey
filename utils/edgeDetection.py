@@ -8,7 +8,7 @@ def maxDeviationThresh(hist):
     index_max = list(hist).index(maximum)
     index_min = 0
     for i in range(index_max, -1, -1):
-        if not hist[i]:
+        if not hist[i] and i < index_max - 1:
             index_min = i
             break
     distances = []
@@ -29,7 +29,10 @@ def maxDeviationThresh(hist):
 
 def extractDrawing(img):
     dst = cv2.bilateralFilter(img, 10, sigmaColor=15, sigmaSpace=15)
-    hist, _ = np.histogram(dst[dst > 0].flatten(), range(257))
+    max_occ = np.bincount(dst[dst > 0]).argmax()
+    mask = dst == 0
+    dst[mask] = max_occ
+    hist, _ = np.histogram(dst.flatten(), range(257))
     thresh_val = maxDeviationThresh(hist)
     threshed = np.ones(dst.shape, np.uint8)*255
     mask = dst < thresh_val
