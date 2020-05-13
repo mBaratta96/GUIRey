@@ -46,12 +46,17 @@ class SimMeasures():
         self.canvas.pack(side="top", fill="both", expand=True)
         self.img_item = self.canvas.create_image(0, 0, anchor="nw", image=self.tk_im)
         self.canvas.bind('<Double-Button-1>', self.dragOrResize)
+        self.root.bind('<Left>', lambda e: self.left())
+        self.root.bind('<Right>', lambda e: self.right())
+        self.root.bind('<Up>', lambda e: self.up())
+        self.root.bind('<Down>', lambda e: self.down())
         self.start_x = None
         self.start_y = None
         self._drag_data = {"x": 0, "y": 0, "item": None}
         self.canvas.tag_bind("rec", "<ButtonPress-1>", self.start)
         self.canvas.tag_bind("rec", "<ButtonRelease-1>", self.stop)
         self.canvas.tag_bind("rec", "<B1-Motion>", self.move)
+
         self.dragging = False
         self.resizing = False
         self.modality = True
@@ -163,91 +168,139 @@ class SimMeasures():
     def start(self, event):
         """Begining drag of an object"""
         # record the item and its location
-        self._drag_data["item"] = self.canvas.find_closest(event.x, event.y)[0]
-        self._drag_data["x"] = event.x
-        self._drag_data["y"] = event.y
-        if self.modality:
-            self.dragging = True
-        else:
-            self.resizing = True
+        if self.templateIN:
+            self._drag_data["x"] = event.x
+            self._drag_data["y"] = event.y
+            if self.modality:
+                self.dragging = True
+            else:
+                self.resizing = True
 
     def stop(self, event):
-        self._drag_data["item"] = None
-        self._drag_data["x"] = 0
-        self._drag_data["y"] = 0
-        if self.modality:
-            self.dragging = False
-        else:
-            self.resizing = False
+        if self.templateIN:
+            self._drag_data["x"] = 0
+            self._drag_data["y"] = 0
+            if self.modality:
+                self.dragging = False
+            else:
+                self.resizing = False
 
     def move(self, event):
+        if self.templateIN:
+            delta_x = event.x - self._drag_data["x"]
+            delta_y = event.y - self._drag_data["y"]
 
-        delta_x = event.x - self._drag_data["x"]
-        delta_y = event.y - self._drag_data["y"]
+            if self.modality:
+                self.canvas.move(self.rect, delta_x, delta_y)
+            else:
+                if len(self.canvas.coords(self.rect)) == 4:
+                    x0, y0, x1, y1 = self.canvas.coords(self.rect)
+                    if abs(self._drag_data["x"] - x0) < 20:
+                        self.canvas.coords(self.rect, x0 + delta_x, y0, x1, y1)
+                    elif abs(self._drag_data["x"] - x1) < 20:
+                        self.canvas.coords(self.rect, x0, y0, x1 + delta_x, y1)
+                    elif abs(self._drag_data["y"] - y0) < 20:
+                        self.canvas.coords(self.rect, x0, y0 + delta_y, x1, y1)
+                    elif abs(self._drag_data["y"] - y1) < 20:
+                        self.canvas.coords(self.rect, x0, y0, x1, y1 + delta_y)
 
-        if self.modality:
-            self.canvas.move(self._drag_data["item"], delta_x, delta_y)
-        else:
-            if len(self.canvas.coords(self._drag_data["item"])) == 4:
-                x0, y0, x1, y1 = self.canvas.coords(self._drag_data["item"])
-                if (abs(self._drag_data["x"] - x0) < 20):
-                    self.canvas.coords(self._drag_data["item"], x0 + delta_x, y0, x1, y1)
-                elif (abs(self._drag_data["x"] - x1) < 20):
-                    self.canvas.coords(self._drag_data["item"], x0, y0, x1 + delta_x, y1)
-                elif (abs(self._drag_data["y"] - y0) < 20):
-                    self.canvas.coords(self._drag_data["item"], x0, y0 + delta_y, x1, y1)
-                elif (abs(self._drag_data["y"] - y1) < 20):
-                    self.canvas.coords(self._drag_data["item"], x0, y0, x1, y1 + delta_y)
-
-        self._drag_data["x"] = event.x
-        self._drag_data["y"] = event.y
-        self.no_score = self.getROI()
-        self.computeSimilarityGlobal()
+            self._drag_data["x"] = event.x
+            self._drag_data["y"] = event.y
+            self.no_score = self.getROI()
+            self.computeSimilarityGlobal()
 
     def dragOrResize(self, event):
-        if self.modality:
-            self.canvas.itemconfig(self.rect, outline="blue")
-        else:
-            self.canvas.itemconfig(self.rect, outline="red")
-        self.modality = not self.modality
+        if self.templateIN:
+            if self.modality:
+                self.canvas.itemconfig(self.rect, outline="blue")
+            else:
+                self.canvas.itemconfig(self.rect, outline="red")
+            self.modality = not self.modality
+
+    def left(self):
+        if self.templateIN:
+            delta_x = -1
+            delta_y = 0
+            if self.modality:
+                self.canvas.move(self.rect, delta_x, delta_y)
+            else:
+                x0, y0, x1, y1 = self.canvas.coords(self.rect)
+                self.canvas.coords(self.rect, x0 + delta_x, y0, x1, y1)
+
+    def right(self):
+        if self.templateIN:
+            delta_x = 1
+            delta_y = 0
+            if self.modality:
+                self.canvas.move(self.rect, delta_x, delta_y)
+            else:
+                x0, y0, x1, y1 = self.canvas.coords(self.rect)
+                self.canvas.coords(self.rect, x0, y0, x1 + delta_x, y1)
+
+    def up(self):
+        if self.templateIN:
+            delta_x = 0
+            delta_y = -1
+            if self.modality:
+                self.canvas.move(self.rect, delta_x, delta_y)
+            else:
+                x0, y0, x1, y1 = self.canvas.coords(self.rect)
+                self.canvas.coords(self.rect, x0, y0 + delta_y, x1, y1)
+
+    def down(self):
+        if self.templateIN:
+            delta_x = 0
+            delta_y = 1
+            if self.modality:
+                self.canvas.move(self.rect, delta_x, delta_y)
+            else:
+                x0, y0, x1, y1 = self.canvas.coords(self.rect)
+                self.canvas.coords(self.rect, x0, y0, x1, y1 + delta_y)
 
     def getROI(self):
         x0, y0, x1, y1 = self.canvas.coords(self.rect)
-        cropped = self.img[int(y0):int(y1), int(x0):int(x1)]
-        no_score = cv2.cvtColor(removeScore.removeScore(cropped), cv2.COLOR_BGR2GRAY)
+        x0 = int(min(self.img_shape[1], max(0, x0)))
+        y0 = int(min(self.img_shape[0], max(0, y0)))
+        y1 = int(min(self.img_shape[0], max(0, y1)))
+        x1 = int(min(self.img_shape[1], max(0, x1)))
+        cropped = self.img[y0:y1, x0:x1]
+        if cropped.shape[0] > 0 and cropped.shape[1] > 0:
+            no_score = cv2.cvtColor(removeScore.removeScore(cropped), cv2.COLOR_BGR2GRAY)
+        else:
+            no_score = None
         return no_score
 
     def computeCosine(self):
         self.cosine_value.delete(1.0, tk.END)
-        if self.cosine_selected.get() and self.templateIN:
+        if self.cosine_selected.get() and self.templateIN and self.no_score is not None:
             self.cosine_value.insert(tk.END, str(cosine(self.img_template, self.no_score)))
         else:
             self.cosine_value.insert(tk.END, '0.0')
 
     def computeHaus(self):
         self.haus_value.delete(1.0, tk.END)
-        if self.haus_selected.get() and self.templateIN:
+        if self.haus_selected.get() and self.templateIN and self.no_score is not None:
             self.haus_value.insert(tk.END, str(hausdorff(self.img_template, self.no_score)))
         else:
             self.haus_value.insert(tk.END, '0.0')
 
     def computeChamfer(self):
         self.chamfer_value.delete(1.0, tk.END)
-        if self.chamfer_selected.get() and self.templateIN:
+        if self.chamfer_selected.get() and self.templateIN and self.no_score is not None:
             self.chamfer_value.insert(tk.END, str(chamfer(self.img_template, self.no_score)))
         else:
             self.chamfer_value.insert(tk.END, '0.0')
 
     def computeHOG(self):
         self.HOG_value.delete(1.0, tk.END)
-        if self.HOG_selected.get() and self.templateIN:
+        if self.HOG_selected.get() and self.templateIN and self.no_score is not None:
             self.HOG_value.insert(tk.END, str(histGrad(self.img_template, self.no_score)))
         else:
             self.HOG_value.insert(tk.END, '0.0')
 
     def computeDistanceOriginal(self):
         self.distance_value.delete(1.0, tk.END)
-        if self.distance_selected.get() and self.templateIN:
+        if self.distance_selected.get() and self.templateIN and self.no_score is not None:
             original_coord = self.img_or_points[label_dict[self.template_name]]
             rect_coord = self.canvas.coords(self.rect)
             centerROI = (int((rect_coord[2] + rect_coord[0]) // 2), int((rect_coord[3] + rect_coord[1]) // 2))
