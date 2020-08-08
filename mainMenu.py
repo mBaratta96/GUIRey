@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
+import json
 import os
 from utils.selectPoints import PointSelector
 from utils.drawRect import CropImage
@@ -38,7 +39,18 @@ class MainMenu(object):
             self.root.destroy()
 
     def openHomography(self):
-        image_paths = selectFiles()
+        #image_paths = selectFiles()
+        with open('f1.txt') as f:
+            lines = [line.rstrip() for line in f]
+        data = []
+        with open(os.path.join(os.getcwd(), 'homog_brutte', 'list_brutte.txt')) as f:
+            for line in f:
+                data.append(json.loads(line))
+        done = [image['name'] for image in data]
+        lines = list(set(lines)-set(done))
+        image_paths = [os.path.join(os.getcwd(), 'Acquisizioni_DonGnocchiPalazzolo',
+                                    line.split('_')[0], line.split('_')[1], 'pag03.png') for line in lines]
+
         if len(image_paths) > 0:
             self.tl = tk.Toplevel(self.root)
             self.win = PointSelector(self.tl, image_paths)
@@ -77,3 +89,4 @@ if __name__ == '__main__':
     root = tk.Tk()
     app = MainMenu(root)
     root.mainloop()
+

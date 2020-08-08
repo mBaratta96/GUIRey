@@ -4,8 +4,11 @@ import cv2
 from PIL import Image, ImageTk
 from utils.selectRect import computeHomograpy
 import os
+import pandas as pd
+import json
+
 scale = 20
-scale_h = 80
+scale_h = 100
 class PointSelector(object):
     def __init__(self, root, images):
         self.points = []
@@ -49,8 +52,11 @@ class PointSelector(object):
 
     def createTkImage(self):
         path = self.img_paths[self.count_img]
+        print(path)
         self.original_img = cv2.imread(path)
-        _, self.img_name = os.path.split(path)
+        splitted = path.split('\\')
+        self.img_name = splitted[-3] + '_' + splitted[-2] + '.png'
+        print(self.img_name)
         width = int(self.original_img.shape[1] * self.scale_percent)
         height = int(self.original_img.shape[0] * self.scale_percent)
         dim = (width, height)
@@ -76,7 +82,7 @@ class PointSelector(object):
         if self.count_points<5:
             x = event.x
             y = event.y
-            self.points.append(((1/self.scale_percent) * x, (1/self.scale_percent) * y))
+            self.points.append((int((1/self.scale_percent) * x), int((1/self.scale_percent) * y)))
             self.count_points += 1
             r = 5
             self.canvas.create_oval(x-r, y-r, x+r, y+r, outline='green', fill='green', tags=("circle",))
@@ -107,7 +113,13 @@ class PointSelector(object):
                 self.reset()
 
     def saveImage(self, img):
-        directory = filedialog.asksaveasfilename(initialdir=os.getcwd(), initialfile=self.img_name)
+        #directory = filedialog.asksaveasfilename(initialdir=os.getcwd(), initialfile=self.img_name)
+        directory = os.path.join('homog_brutte', self.img_name)
+        d = {"name":self.img_name[:-4], "points":self.points}
+        string_json = json.dumps(d)
+        with open(os.path.join(os.getcwd(), 'homog_brutte','list_brutte.txt'), 'a+') as f:
+            f.write(string_json)
+            f.write('\n')
         cv2.imwrite(directory, img)
 
 

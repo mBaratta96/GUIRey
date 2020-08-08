@@ -9,7 +9,7 @@ import numpy as np
 import os
 from utils.edgeDetection import extractDrawing
 from matplotlib import pyplot as plt
-from keras.models import load_model
+#from keras.models import load_model
 
 scale = 100
 shape = (100, 100, 1)
