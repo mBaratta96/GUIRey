@@ -48,8 +48,8 @@ class CropImage():
         self.abortButton.pack(side=tk.RIGHT, anchor=tk.SE)
         self.template_frame = tk.Frame(self.root)
         self.template_frame.pack(side=tk.RIGHT)
-        self.instruction_label = tk.Label(self.template_frame, text="Select Region Of Interest with mouse.\nDouble-"
-                                                                    "click on rectangle to modify ROI:\n Red border = Move ROI\n"
+        self.instruction_label = tk.Label(self.template_frame, text="Select Region Of\n Interest with mouse.\nDouble-"
+                                                                    "click on rectangle\no modify ROI:\n Red border = Move ROI\n"
                                                                     "Blue border = Reshape ROI")
         self.instruction_label.pack(side=tk.BOTTOM)
         self.root.update_idletasks()
@@ -195,6 +195,3 @@ class CropImage():
 
     def skip_image(self):
         self.changeImage()
-
-
-

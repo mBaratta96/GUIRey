@@ -6,7 +6,7 @@ from PIL import Image, ImageTk
 from sklearn.mixture import GaussianMixture
 import numpy as np
 from utils.edgeDetection import maxDeviationThresh
-
+from matplotlib import pyplot as plt
 
 
 def selectFiles():
@@ -95,7 +95,7 @@ class RemoveLine:
         dst = self.img.copy()
         hist, bins = np.histogram(dst[dst > 0].flatten(), range(257))
         thresh_val = maxDeviationThresh(hist)
-        hist = hist[:thresh_val]
+        hist = hist[:thresh_val-1]
         #plt.stem(hist)
         #plt.show()
         n_components = int(self.n_components.get())
@@ -107,13 +107,13 @@ class RemoveLine:
         means = gmm.means_
         min_idx = np.argmin(means)
         
-        '''for i in range(n_components):
+        for i in range(n_components):
             arg = np.where(results == i)[0]
             line_prop = 'C{}-'.format(i)
             marker_prop = 'C{}o'.format(i)
-            plt.stem(arg, hist[arg], linefmt=line_prop, markerfmt=marker_prop, use_line_collection=True)
-        plt.show()
-        plt.close('all')'''
+            #plt.stem(arg, hist[arg], linefmt=line_prop, markerfmt=marker_prop, use_line_collection=True)
+        #plt.show()
+        #plt.close('all')
         max_occ = np.bincount(dst[dst > 0]).argmax()
         values = np.asarray(np.where(results == min_idx))[0]
         thresh = int(self.thresh_slide.get())

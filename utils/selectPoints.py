@@ -3,12 +3,15 @@ from tkinter import filedialog
 import cv2
 from PIL import Image, ImageTk
 from utils.selectRect import computeHomograpy
+from utils.removeScore import removeScore
 import os
 import pandas as pd
 import json
 
 scale = 20
 scale_h = 100
+
+
 class PointSelector(object):
     def __init__(self, root, images):
         self.points = []
@@ -16,7 +19,7 @@ class PointSelector(object):
         self.root = root
         self.img_paths = images
         self.count_img = 0
-        self.scale_percent = scale/100
+        self.scale_percent = scale / 100
         self.createTkImage()
         self.image_frame = tk.Frame(self.root, width=self.img_shape[1], height=self.img_shape[0], bd=1)
         self.image_frame.pack(side=tk.LEFT, expand=True)
@@ -54,7 +57,7 @@ class PointSelector(object):
         path = self.img_paths[self.count_img]
         print(path)
         self.original_img = cv2.imread(path)
-        splitted = path.split('\\')
+        splitted = path.split('/')
         self.img_name = splitted[-3] + '_' + splitted[-2] + '.png'
         print(self.img_name)
         width = int(self.original_img.shape[1] * self.scale_percent)
@@ -64,7 +67,6 @@ class PointSelector(object):
         self.img_shape = img.shape
         img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype('uint8'), 'RGB')
         self.tk_im = ImageTk.PhotoImage(img)
-
 
     def changeImage(self):
         self.reset()
@@ -79,21 +81,21 @@ class PointSelector(object):
         self.root.destroy()
 
     def on_button_press(self, event):
-        if self.count_points<5:
+        if self.count_points < 5:
             x = event.x
             y = event.y
-            self.points.append((int((1/self.scale_percent) * x), int((1/self.scale_percent) * y)))
+            self.points.append((int((1 / self.scale_percent) * x), int((1 / self.scale_percent) * y)))
             self.count_points += 1
             r = 5
-            self.canvas.create_oval(x-r, y-r, x+r, y+r, outline='green', fill='green', tags=("circle",))
+            self.canvas.create_oval(x - r, y - r, x + r, y + r, outline='green', fill='green', tags=("circle",))
 
     def confirm(self):
         if self.count_points == 5:
             homog = computeHomograpy(self.original_img, self.points)
-            width = int(homog.shape[1] * scale_h/100)
-            height = int(homog.shape[0] * scale_h/100)
+            width = int(homog.shape[1] * scale_h / 100)
+            height = int(homog.shape[0] * scale_h / 100)
             dim = (width, height)
-            homog = cv2.resize(homog, dim, interpolation=cv2.INTER_AREA)
+            homog = removeScore(cv2.resize(homog, dim, interpolation=cv2.INTER_AREA))
             show_homog = homog.copy()
             cv2.putText(show_homog, 'Confirm: Y/N', (10, 128), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
             while True:
@@ -113,15 +115,18 @@ class PointSelector(object):
                 self.reset()
 
     def saveImage(self, img):
-        #directory = filedialog.asksaveasfilename(initialdir=os.getcwd(), initialfile=self.img_name)
-        directory = os.path.join('homog_brutte', self.img_name)
-        d = {"name":self.img_name[:-4], "points":self.points}
+        # directory = filedialog.asksaveasfilename(initialdir=os.getcwd(), initialfile=self.img_name)
+        directory = os.path.join(os.getcwd(), self.img_name)
+        d = {"name": self.img_name[:-4], "points": self.points}
         string_json = json.dumps(d)
-        with open(os.path.join(os.getcwd(), 'homog_brutte','list_brutte.txt'), 'a+') as f:
+        if os.path.exists(os.path.join(os.getcwd(), 'points.txt')):
+            append_write = 'a'
+        else:
+            append_write = 'w'
+        with open(os.path.join(os.getcwd(), 'points.txt'), append_write) as f:
             f.write(string_json)
             f.write('\n')
         cv2.imwrite(directory, img)
-
 
     def reset(self):
         self.canvas.delete("circle")
@@ -131,5 +136,3 @@ class PointSelector(object):
     def skip_image(self):
         self.points = []
         self.changeImage()
-
-

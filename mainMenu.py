@@ -26,12 +26,12 @@ class MainMenu(object):
             fill='both')
         self.cropTemplateButton = tk.Button(self.menu_frame, text="Crop Image", command=self.openCropRegion).pack(
             fill='both')
-        self.analizeScoreButton = tk.Button(self.menu_frame, text="Compute Similarity Measures",
+        '''self.analizeScoreButton = tk.Button(self.menu_frame, text="Compute Similarity Measures",
                                             command=self.openSimMeasures).pack(
             fill='both')
         self.findTempButton = tk.Button(self.menu_frame, text="Find Cropped Image",
-                                        command=self.openTempMatching).pack(fill='both')
-        self.removeLineButton = tk.Button(self.menu_frame, text="Remove Line (Work In Progress)",
+                                        command=self.openTempMatching).pack(fill='both')'''
+        self.removeLineButton = tk.Button(self.menu_frame, text="Remove Line",
                                           command=self.removeLine).pack(fill='both')
 
     def on_closing(self):
@@ -39,18 +39,7 @@ class MainMenu(object):
             self.root.destroy()
 
     def openHomography(self):
-        #image_paths = selectFiles()
-        with open('f1.txt') as f:
-            lines = [line.rstrip() for line in f]
-        data = []
-        with open(os.path.join(os.getcwd(), 'homog_brutte', 'list_brutte.txt')) as f:
-            for line in f:
-                data.append(json.loads(line))
-        done = [image['name'] for image in data]
-        lines = list(set(lines)-set(done))
-        image_paths = [os.path.join(os.getcwd(), 'Acquisizioni_DonGnocchiPalazzolo',
-                                    line.split('_')[0], line.split('_')[1], 'pag03.png') for line in lines]
-
+        image_paths = selectFiles()
         if len(image_paths) > 0:
             self.tl = tk.Toplevel(self.root)
             self.win = PointSelector(self.tl, image_paths)
