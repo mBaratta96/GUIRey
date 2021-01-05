@@ -2,6 +2,14 @@ import cv2
 import numpy as np
 
 
+def unique_color(img):
+    mask = np.all(img != [0,0,0], axis=-1)
+    only_color = img[mask]
+    colors, count = np.unique(only_color, axis=0, return_counts=True)
+    max_color = colors[count.argmax()]
+    return max_color
+
+
 def removeScore(image, color=(255, 255, 255)):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     lower_red = np.array([0, 30, 10])
@@ -21,3 +29,4 @@ def removeScore(image, color=(255, 255, 255)):
     result[BW] = color
 
     return result
+
